@@ -7,7 +7,6 @@ using PlanShare.Domain.Security.Tokens;
 using PlanShare.Infrastructure;
 using PlanShare.Infrastructure.Extensions;
 using PlanShare.Infrastructure.Migrations;
-using System.Runtime.CompilerServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,8 +59,6 @@ builder.Services.AddScoped<ITokenProvider, HttpContextTokenValue>();
 
 builder.Services.AddHttpContextAccessor();
 
-var type = builder.Configuration.GetDatabaseType();
-
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -82,7 +79,7 @@ app.MapControllers();
 
 if (builder.Configuration.IsUnitTestEnviroment() == false)
 {
-    app.MigrateDatabase();
+    await MigrateDatabase();
 }
 
 app.Run();
@@ -90,6 +87,7 @@ app.Run();
 async Task MigrateDatabase()
 {
     await using var scope = app.Services.CreateAsyncScope();
-
-    await DataBaseMigration.MigrationDatabase(scope.ServiceProvider);
+    var databaseType = builder.Configuration.GetDatabaseType();
+    var stringConnection = builder.Configuration.ConnectionString();
+    DataBaseMigration.Migrate(databaseType, stringConnection, scope.ServiceProvider);
 }
